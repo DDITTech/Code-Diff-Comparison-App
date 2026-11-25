@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Diff Comparison App</title>
+<style>
+:root{color-scheme:light;--bg:#fff;--fg:#1f2328;--bar:#f3f3f3;--bd:#d0d7de;--add:#e2f4e4;--addi:#a6dfab;--del:#fde4e4;--deli:#f5b1b1;--emp:#eeeeee;--n:#7a8088;--acc:#0b6bcb;--cur:#e8b730}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1e1e1e;--fg:#d4d4d4;--bar:#2a2a2a;--bd:#3c3c3c;--add:#26382a;--addi:#3a6a40;--del:#452828;--deli:#7d3a3a;--emp:#242424;--n:#858585;--acc:#4da3ff;--cur:#e2b340}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#1e1e1e;--fg:#d4d4d4;--bar:#2a2a2a;--bd:#3c3c3c;--add:#26382a;--addi:#3a6a40;--del:#452828;--deli:#7d3a3a;--emp:#242424;--n:#858585;--acc:#4da3ff;--cur:#e2b340}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:14px "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--bar);border-bottom:1px solid var(--bd)}
+h1{font-size:15px;margin:0 10px 0 0}
+button{font:inherit;padding:4px 12px;border:1px solid var(--bd);border-radius:4px;background:var(--bg);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--acc)}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.4;cursor:default}
+#theme{position:relative;flex:none;display:flex;align-items:center;justify-content:space-between;width:58px;height:28px;padding:0 6px;border-radius:999px}
+#theme::before{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--acc);transition:transform .2s}
+:root[data-theme="dark"] #theme::before{transform:translateX(30px)}
+#theme svg{position:relative;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--n);transition:color .2s}
+:root[data-theme="light"] #theme .sun,:root[data-theme="dark"] #theme .moon{color:#fff}
+label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.g{flex:1}
+#stat,#pos{color:var(--n)}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+#inp{flex:1;min-height:0;display:flex;gap:1px;background:var(--bd)}
+.pane{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.pane.drag{outline:2px dashed var(--acc);outline-offset:-4px}
+.bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--bd)}
+.bar b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+textarea{flex:1;resize:none;border:0;padding:8px 10px;background:var(--bg);color:var(--fg);font:13px/1.5 Consolas,"Cascadia Mono",monospace;tab-size:4;white-space:pre;overflow:auto}
+#out{flex:1;min-height:0;overflow:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font:13px/1.5 Consolas,"Cascadia Mono",monospace}
+th{position:sticky;top:0;z-index:1;background:var(--bar);text-align:left;font:600 13px "Segoe UI",sans-serif;padding:6px 10px;border-bottom:1px solid var(--bd);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td{vertical-align:top;padding:0 8px}
+td.n{text-align:right;color:var(--n);user-select:none;background:var(--bar);padding:0 6px}
+td.c{white-space:pre-wrap;word-break:break-all;tab-size:4}
+td.c::after{content:"\200b"}
+td.l{border-right:1px solid var(--bd)}
+.mod .l,.del .l{background:var(--del)}
+.mod .r,.add .r{background:var(--add)}
+.del .r,.add .l{background:var(--emp)}
+.mod .l i{background:var(--deli)}
+.mod .r i{background:var(--addi)}
+i{font-style:normal}
+tr.cur td.n{background:var(--cur);color:#000}
+tr.cur td.c{box-shadow:inset 0 0 0 100px rgba(232,183,48,.16)}
+.sep td{text-align:center;color:var(--n);background:var(--bar);padding:2px;font:12px "Segoe UI",sans-serif}
+.msg{padding:48px 16px;text-align:center;color:var(--n);font-size:15px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Code Diff Comparison App <span id="version-display" style="font-size: 0.8em; color: var(--n);"></span></h1>
+  <button id="theme" role="switch" aria-checked="false" aria-label="Dark mode" title="Switch between light and dark mode"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  <button class="p" id="cmp" title="Compare (Ctrl+Enter)">Compare</button>
+  <button id="edit">Edit files</button>
+  <button id="swap">Swap sides</button>
+  <label><input type="checkbox" id="ws"> Ignore whitespace</label>
+  <label><input type="checkbox" id="ci"> Ignore case</label>
+  <label><input type="checkbox" id="only"> Collapse unchanged lines</label>
+  <span class="g"></span>
+  <span id="stat"></span>
+  <button id="prev" title="Previous difference (Shift+F3)" disabled>Previous</button>
+  <span id="pos"></span>
+  <button id="next" title="Next difference (F3)" disabled>Next</button>
+</header>
+<main>
+  <div id="inp">
+    <section class="pane" id="p0">
+      <div class="bar"><b id="nm0">Original</b><button class="p" id="o0">Add file...</button><input type="file" id="f0" hidden></div>
+      <textarea id="ta0" spellcheck="false" placeholder="Paste text, open a file, or drop a file here."></textarea>
+    </section>
+    <section class="pane" id="p1">
+      <div class="bar"><b id="nm1">Modified</b><button class="p" id="o1">Add file...</button><input type="file" id="f1" hidden></div>
+      <textarea id="ta1" spellcheck="false" placeholder="Paste text, open a file, or drop a file here."></textarea>
+    </section>
+  </div>
+  <div id="out" hidden></div>
+  <footer style="text-align: center; padding: 5px; color: var(--n); font-size: 12px; border-top: 1px solid var(--bd);">
+  v<span id="footer-version"></span>
+  </footer>
+</main>
+<script>
+
+/* Current app version */
+const APP_VERSION = "1.2";
+
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>]/g,c=>c=='&'?'&amp;':c=='<'?'&lt;':'&gt;');
+const names=['Original','Modified'];
+let A=[],B=[],rows=[],hunks=0,cur=0;
+
+/* Inject the current version into the HTML automatically */
+document.getElementById('version-display').textContent = 'v' + APP_VERSION;
+document.getElementById('footer-version').textContent = APP_VERSION;
+
+/* Myers diff. Returns ops [type, indexInA, indexInB], type = eq | del | add */
+function myers(a,b){
+  const N=a.length,M=b.length,MAX=N+M,off=MAX+1,LIM=3000;
+  const v=new Int32Array(2*MAX+3),trace=[];
+  let D,found=false;
+  for(D=0;D<=MAX&&!found;D++){
+    if(D>LIM){
+      const o=[];
+      for(let i=0;i<N;i++)o.push(['del',i,0]);
+      for(let j=0;j<M;j++)o.push(['add',N,j]);
+      return o;
+    }
+    trace.push(v.slice(off-D-1,off+D+2));
+    for(let k=-D;k<=D;k+=2){
+      let x=(k==-D||(k!=D&&v[off+k-1]<v[off+k+1]))?v[off+k+1]:v[off+k-1]+1,y=x-k;
+      while(x<N&&y<M&&a[x]===b[y]){x++;y++}
+      v[off+k]=x;
+      if(x>=N&&y>=M){found=true;break}
+    }
+  }
+  D--;
+  const ops=[];let x=N,y=M;
+  for(let d=D;d>0;d--){
+    const vd=trace[d],g=q=>vd[q+d+1],k=x-y;
+    const pk=(k==-d||(k!=d&&g(k-1)<g(k+1)))?k+1:k-1;
+    const px=g(pk),py=px-pk;
+    while(x>px&&y>py){x--;y--;ops.push(['eq',x,y])}
+    if(x==px){y--;ops.push(['add',x,y])}else{x--;ops.push(['del',x,y])}
+  }
+  while(x>0&&y>0){x--;y--;ops.push(['eq',x,y])}
+  return ops.reverse();
+}
+function seq(a,b){
+  let s=0,ea=a.length,eb=b.length;
+  while(s<ea&&s<eb&&a[s]===b[s])s++;
+  while(ea>s&&eb>s&&a[ea-1]===b[eb-1]){ea--;eb--}
+  const ops=[];
+  for(let i=0;i<s;i++)ops.push(['eq',i,i]);
+  for(const o of myers(a.slice(s,ea),b.slice(s,eb)))ops.push([o[0],o[1]+s,o[2]+s]);
+  for(let i=ea,j=eb;i<a.length;i++,j++)ops.push(['eq',i,j]);
+  return ops;
+}
+
+/* Highlight the changed words inside a modified line pair */
+const tok=/[\p{L}\p{N}_]+|\s+|[^\p{L}\p{N}_\s]/gu;
+function inline(a,b){
+  const x=a.match(tok)||[],y=b.match(tok)||[];
+  let L='',R='',same=0;
+  for(const [t,i,j] of seq(x,y)){
+    if(t=='eq'){const s=esc(x[i]);L+=s;R+=s;same+=x[i].length}
+    else if(t=='del')L+=`<i>${esc(x[i])}</i>`;
+    else R+=`<i>${esc(y[j])}</i>`;
+  }
+  return same<.3*Math.max(a.length,b.length)?[esc(a),esc(b)]:[L,R];
+}
+
+function split(t){const l=t.split(/\r\n|\n|\r/);if(l[l.length-1]==='')l.pop();return l}
+
+function compare(){
+  A=split($('#ta0').value);B=split($('#ta1').value);
+  const ws=$('#ws').checked,ci=$('#ci').checked;
+  const key=s=>{if(ws)s=s.replace(/\s+/g,' ').trim();return ci?s.toLowerCase():s};
+  const ops=seq(A.map(key),B.map(key));
+  rows=[];hunks=0;cur=0;
+  let add=0,del=0;
+  for(let i=0;i<ops.length;){
+    if(ops[i][0]=='eq'){rows.push({k:'eq',l:ops[i][1],r:ops[i][2],h:0});i++;continue}
+    const d=[],a=[];hunks++;
+    for(;i<ops.length&&ops[i][0]!='eq';i++)ops[i][0]=='del'?d.push(ops[i][1]):a.push(ops[i][2]);
+    del+=d.length;add+=a.length;
+    for(let j=0;j<Math.max(d.length,a.length);j++){
+      const l=j<d.length?d[j]:-1,r=j<a.length?a[j]:-1;
+      rows.push({k:l<0?'add':r<0?'del':'mod',l,r,h:hunks,first:j==0});
+    }
+  }
+  $('#inp').hidden=true;$('#out').hidden=false;
+  $('#stat').textContent=hunks?`${hunks} difference${hunks==1?'':'s'}: ${add} added, ${del} removed`:'';
+  $('#pos').textContent='';
+  $('#prev').disabled=$('#next').disabled=!hunks;
+  render();
+  if(hunks)go(1);
+}
+
+function render(){
+  if(!hunks){$('#out').innerHTML='<div class="msg">No differences found. The two files match.</div>';return}
+  const only=$('#only').checked,n=rows.length,vis=new Array(n).fill(!only);
+  if(only)rows.forEach((r,i)=>{if(r.k!='eq')for(let j=Math.max(0,i-3);j<=Math.min(n-1,i+3);j++)vis[j]=true});
+  let h=`<table><colgroup><col style="width:52px"><col><col style="width:52px"><col></colgroup><thead><tr><th colspan="2">${esc(names[0])}</th><th colspan="2">${esc(names[1])}</th></tr></thead><tbody>`;
+  for(let i=0;i<n;i++){
+    if(!vis[i]){
+      let j=i;while(j<n&&!vis[j])j++;
+      h+=`<tr class="sep"><td colspan="4">${j-i} unchanged line${j-i>1?'s':''}</td></tr>`;
+      i=j-1;continue;
+    }
+    const r=rows[i],a=r.l>=0?A[r.l]:'',b=r.r>=0?B[r.r]:'';
+    let L=esc(a),R=esc(b);
+    if(r.k=='mod')[L,R]=inline(a,b);
+    h+=`<tr class="${r.k}"${r.h?` data-h="${r.h}"`:''}${r.first?` id="h${r.h}"`:''}><td class="n">${r.l>=0?r.l+1:''}</td><td class="c l">${L}</td><td class="n">${r.r>=0?r.r+1:''}</td><td class="c r">${R}</td></tr>`;
+  }
+  $('#out').innerHTML=h+'</tbody></table>';
+}
+
+function go(d){
+  if(!hunks)return;
+  cur=cur?((cur-1+d+hunks)%hunks)+1:(d>0?1:hunks);
+  document.querySelectorAll('tr.cur').forEach(e=>e.classList.remove('cur'));
+  document.querySelectorAll(`tr[data-h="${cur}"]`).forEach(e=>e.classList.add('cur'));
+  const el=$('#h'+cur);if(el)el.scrollIntoView({block:'center'});
+  $('#pos').textContent=`${cur} of ${hunks}`;
+}
+
+/* Loading files (UTF-8 or UTF-16 with a byte order mark) */
+async function read(i,f){
+  const u=new Uint8Array(await f.arrayBuffer());
+  const enc=u[0]==0xFF&&u[1]==0xFE?'utf-16le':u[0]==0xFE&&u[1]==0xFF?'utf-16be':'utf-8';
+  $('#ta'+i).value=new TextDecoder(enc).decode(u);
+  names[i]=f.name;$('#nm'+i).textContent=f.name;
+}
+async function loadFiles(i,fs){
+  fs=fs.slice(0,2);
+  for(let n=0;n<fs.length;n++)await read(fs.length>1?n:i,fs[n]);
+  if($('#ta0').value&&$('#ta1').value)compare();
+}
+
+for(const i of [0,1]){
+  const p=$('#p'+i);
+  $('#o'+i).onclick=()=>$('#f'+i).click();
+  $('#f'+i).onchange=e=>{if(e.target.files[0])loadFiles(i,[e.target.files[0]]);e.target.value=''};
+  p.ondragover=e=>{e.preventDefault();p.classList.add('drag')};
+  p.ondragleave=()=>p.classList.remove('drag');
+  p.ondrop=e=>{e.preventDefault();p.classList.remove('drag');loadFiles(i,[...e.dataTransfer.files])};
+}
+for(const t of ['dragover','drop'])document.addEventListener(t,e=>e.preventDefault());
+
+/* Light/dark mode: starts from the system setting; the toggle changes it for this visit only */
+const root=document.documentElement;
+function theme(t){
+  root.dataset.theme=t;
+  $('#theme').setAttribute('aria-checked',t=='dark');
+}
+theme(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+$('#theme').onclick=()=>theme(root.dataset.theme=='dark'?'light':'dark');
+
+$('#cmp').onclick=compare;
+$('#edit').onclick=()=>{$('#out').hidden=true;$('#inp').hidden=false};
+$('#prev').onclick=()=>go(-1);
+$('#next').onclick=()=>go(1);
+$('#swap').onclick=()=>{
+  const t=$('#ta0').value;$('#ta0').value=$('#ta1').value;$('#ta1').value=t;
+  names.reverse();$('#nm0').textContent=names[0];$('#nm1').textContent=names[1];
+  if(!$('#out').hidden)compare();
+};
+for(const id of ['ws','ci','only'])$('#'+id).onchange=()=>{if(!$('#out').hidden)compare()};
+addEventListener('keydown',e=>{
+  if(e.key=='F3'){e.preventDefault();go(e.shiftKey?-1:1)}
+  else if(e.key=='Enter'&&e.ctrlKey){e.preventDefault();compare()}
+});
+</script>
+</body>
+</html>
