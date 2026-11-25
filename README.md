@@ -22,18 +22,22 @@ This is a local only HTML webpage/app designed to open two different code files 
 
 ## Images
 
+- App open in light mode
 <div align="center">
   <img src="assets/image01.png" width="1000">
 </div>
 
+- App open in dark mode
 <div align="center">
   <img src="assets/image02.png" width="1000">
 </div>
 
+- Comparing two files with no differences
 <div align="center">
   <img src="assets/image03.png" width="1000">
 </div>
 
+- Comparing two files with at least one difference
 <div align="center">
   <img src="assets/image04.png" width="1000">
 </div>
